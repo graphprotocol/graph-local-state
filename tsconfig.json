@@ -21,9 +21,9 @@
     "noUnusedLocals": false,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    //     "paths": {
-    //       "@graphprotocol/client-*": ["packages/*/src/index.ts"]
-    //     },
+    "paths": {
+      "@graphprotocol/local-state-*": ["packages/*/src/index.ts"]
+    },
     "jsx": "preserve"
   },
   "include": ["packages"],

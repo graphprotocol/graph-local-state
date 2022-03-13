@@ -1,0 +1,13 @@
+overwrite: true
+schema: './src/graphql/schema.ts'
+generates:
+  ./src/graphql/generated/graphql.ts:
+    plugins:
+      - 'typescript'
+      - 'typescript-resolvers'
+  ./src/generated/gql:
+    documents:
+      - './**/*.ts(x)?'
+    preset: gql-tag-operations-preset
+    presetConfig:
+      augmentedModuleName: '@urql/core'
