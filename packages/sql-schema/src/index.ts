@@ -103,7 +103,7 @@ const main = async () => {
 
         return {
           name: name.value,
-          type: isMapped ? namedType : 'TEXT', // relations are always text
+          type: isMapped ? namedType : 'INTEGER', // relations are always text
           constraint: type.kind === Kind.NON_NULL_TYPE ? 'NOT NULL' : 'NULL',
           relationTable,
           relation: relation && relation.length > 0 ? relation[0] : null,
@@ -115,15 +115,20 @@ const main = async () => {
   })
 
   const schema = sqlSchema.map(({ tableName, columns }) => {
-    const cols = columns?.map(({ name, type, constraint, relationTable, relation }) => {
+    const isLast = (index: number) => columns && index === columns.length - 1
+
+    const cols = columns?.map(({ name, type, constraint, relationTable, relation }, i) => {
       const column = `${name} ${type} ${constraint}`
-      const foreignKey = relationTable ? `\nFOREIGN KEY (${name}) REFERENCES "${relationTable}"(id),` : ''
+      const foreignKey = relationTable
+        ? `\nFOREIGN KEY (${name}) REFERENCES "${relationTable}"(id)` + (isLast(i) ? '' : ',')
+        : ''
       return column + ',' + foreignKey
     })
+
     const str = `${createTable(`"${tableName}"`)} (
-id TEXT PRIMARY KEY,
+id INTEGER PRIMARY KEY AUTOINCREMENT,
 ${cols?.join('\n')}
-)`
+);`
     return str
   })
   log(schema.join('\n'))
