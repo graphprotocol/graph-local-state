@@ -9,6 +9,8 @@ const typeDefs = /* GraphQL */ `
   type Country {
     name: String!
     code: String!
+    population: Int!
+    works: Boolean!
     states: [State!] @derivedFrom(field: "countries")
   }
 
@@ -16,7 +18,7 @@ const typeDefs = /* GraphQL */ `
     name: String!
     code: String!
     countries: [Country!]
-    states: [City!] @derivedFrom(field: "state")
+    cities: [City!] @derivedFrom(field: "state")
   }
 
   type City {
@@ -27,6 +29,41 @@ const typeDefs = /* GraphQL */ `
 `
 const log = console.log
 
+const getDataType = (type: string) => {
+  // Mapping GraphQL String to SQLite "TEXT"
+  if (type === 'String') {
+    return 'TEXT'
+  }
+  // Mapping GraphQL Boolean to SQLite "INTEGER" since it doesn't have built in boolean type
+  // Mapping GraphQL Int to SQLite "INTEGER"
+  if (type === 'Int' || type === 'Boolean') {
+    return 'INTEGER'
+  }
+  // Return non-primitive types as is and they will be mapped to SQLite "TEXT" for relations
+  return type
+}
+
+// Ensure that it one of the types we mapped to SQLite
+const isMappedSQLType = (type: string) => {
+  switch (type) {
+    case 'TEXT':
+    case 'INTEGER':
+      return true
+    default:
+      return false
+  }
+}
+
+type ColumnsAST = {
+  name: string
+  type: string
+  constraint: string
+  relationTable: string | null
+  relation: string | null
+}
+
+const createTable = (name: string) => `CREATE TABLE IF NOT EXISTS ${name}`
+
 const main = async () => {
   // const schema = await loadSchema(
   //   '/Users/saihaj/Desktop/the-guild/graph-local-state/packages/sql-schema/src/schema.graphql',
@@ -34,10 +71,10 @@ const main = async () => {
   //     loaders: [new GraphQLFileLoader()],
   //   },
   // )
-
+  let sqlSchema: Array<{ tableName: string; columns: Array<ColumnsAST> | undefined }> = []
   visit(parse(typeDefs), {
     ObjectTypeDefinition(node) {
-      const tableName = camelCase(node.name.value)
+      const tableName = node.name.value
 
       const columns = node.fields?.map(({ name, type, directives }) => {
         const relation =
@@ -52,17 +89,44 @@ const main = async () => {
             return null
           })
 
+        const namedType = type.type.kind === Kind.NAMED_TYPE ? getDataType(type.type.name.value) : null
+        const isMapped = namedType && isMappedSQLType(namedType)
+
+        const relationTable =
+          type.type.kind === Kind.NON_NULL_TYPE
+            ? type.type.type.kind === Kind.NAMED_TYPE
+              ? type.type.type.name.value
+              : null
+            : isMapped
+            ? null
+            : namedType
+
         return {
-          name: camelCase(name.value),
-          type: type.type.kind === Kind.NAMED_TYPE ? camelCase(type.type.name.value) : type.type.kind,
+          name: name.value,
+          type: isMapped ? namedType : 'TEXT', // relations are always text
           constraint: type.kind === Kind.NON_NULL_TYPE ? 'NOT NULL' : 'NULL',
+          relationTable,
           relation: relation && relation.length > 0 ? relation[0] : null,
         }
       })
 
-      log({ tableName, columns })
+      sqlSchema.push({ tableName, columns })
     },
   })
+
+  const schema = sqlSchema.map(({ tableName, columns }) => {
+    const cols = columns?.map(({ name, type, constraint, relationTable, relation }) => {
+      const column = `${name} ${type} ${constraint}`
+      const foreignKey = relationTable ? `\nFOREIGN KEY (${name}) REFERENCES "${relationTable}"(id),` : ''
+      return column + ',' + foreignKey
+    })
+    const str = `${createTable(`"${tableName}"`)} (
+id TEXT PRIMARY KEY,
+${cols?.join('\n')}
+)`
+    return str
+  })
+  log(schema.join('\n'))
 }
 
 main().catch((e) => console.error(e))
