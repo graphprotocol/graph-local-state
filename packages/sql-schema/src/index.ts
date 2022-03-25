@@ -3,30 +3,46 @@ import { GraphQLFileLoader } from '@graphql-tools/graphql-file-loader'
 import { Kind, parse, visit } from 'graphql'
 import { camelCase } from 'lodash'
 
+// const typeDefs = /* GraphQL */ `
+//   directive @derivedFrom(field: String!) on FIELD_DEFINITION
+
+//   type Country {
+//     name: String!
+//     code: String!
+//     population: Int!
+//     works: Boolean!
+//     states: [State!] @derivedFrom(field: "countries")
+//   }
+
+//   type State {
+//     name: String!
+//     code: String!
+//     countries: [Country!]
+//     cities: [City!] @derivedFrom(field: "state")
+//   }
+
+//   type City {
+//     name: String!
+//     code: String!
+//     state: State!
+//   }
+// `
+
 const typeDefs = /* GraphQL */ `
   directive @derivedFrom(field: String!) on FIELD_DEFINITION
 
-  type Country {
-    name: String!
-    code: String!
-    population: Int!
-    works: Boolean!
-    states: [State!] @derivedFrom(field: "countries")
+  type Post {
+    title: String!
+    body: String!
+    user: User!
   }
 
-  type State {
+  type User {
     name: String!
-    code: String!
-    countries: [Country!]
-    cities: [City!] @derivedFrom(field: "state")
-  }
-
-  type City {
-    name: String!
-    code: String!
-    state: State!
+    username: String
   }
 `
+
 const log = console.log
 
 const getDataType = (type: string) => {
@@ -74,7 +90,7 @@ const main = async () => {
   let sqlSchema: Array<{ tableName: string; columns: Array<ColumnsAST> | undefined }> = []
   visit(parse(typeDefs), {
     ObjectTypeDefinition(node) {
-      const tableName = node.name.value
+      const tableName = node.name.value.endsWith('s') ? node.name.value : `${node.name.value}s`
 
       const columns = node.fields?.map(({ name, type, directives }) => {
         const relation =
@@ -99,7 +115,9 @@ const main = async () => {
               : null
             : isMapped
             ? null
-            : namedType
+            : namedType?.endsWith('s')
+            ? namedType
+            : `${namedType}s`
 
         return {
           name: name.value,
@@ -117,12 +135,10 @@ const main = async () => {
   const schema = sqlSchema.map(({ tableName, columns }) => {
     const isLast = (index: number) => columns && index === columns.length - 1
 
-    const cols = columns?.map(({ name, type, constraint, relationTable, relation }, i) => {
+    const cols = columns?.map(({ name, type, constraint, relationTable }, i) => {
       const column = `${name} ${type} ${constraint}`
-      const foreignKey = relationTable
-        ? `\nFOREIGN KEY (${name}) REFERENCES "${relationTable}"(id)` + (isLast(i) ? '' : ',')
-        : ''
-      return column + ',' + foreignKey
+      const foreignKey = relationTable ? `,\nFOREIGN KEY (${name}) REFERENCES "${relationTable}"(id)` : ''
+      return [column, foreignKey].join(isLast(i) ? '' : ',')
     })
 
     const str = `${createTable(`"${tableName}"`)} (
