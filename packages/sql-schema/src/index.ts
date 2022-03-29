@@ -1,6 +1,6 @@
 import { loadSchema } from '@graphql-tools/load'
 import { GraphQLFileLoader } from '@graphql-tools/graphql-file-loader'
-import { Kind, parse, visit } from 'graphql'
+import { Kind, parse, TypeNode, visit } from 'graphql'
 import { camelCase } from 'lodash'
 
 // const typeDefs = /* GraphQL */ `
@@ -80,6 +80,36 @@ type ColumnsAST = {
 
 const createTable = (name: string) => `CREATE TABLE IF NOT EXISTS ${name}`
 
+/**
+ * ```graphql
+ * type User {
+ *  name: String!
+ * }
+ * ```
+ *
+ * This is represented as `{kind: NonNullType, type:{ kind: NamedType, name: { kind: 'Name', value: 'String' } } }`
+ * We need to extract the name of the type
+ *
+ * ```graphql
+ * type User {
+ *   name: String
+ * }
+ * ```
+ *
+ * This is represented as `{kind: NamedType, name: { kind: 'Name', value: 'String' } }`
+ * We need to extract the name of the type
+ *
+ */
+const extractNameNode = (node: TypeNode) => {
+  return node.kind === Kind.NON_NULL_TYPE
+    ? node.type.kind === Kind.NAMED_TYPE
+      ? node.type
+      : null
+    : node.kind === Kind.NAMED_TYPE
+    ? node
+    : null
+}
+
 const main = async () => {
   // const schema = await loadSchema(
   //   '/Users/saihaj/Desktop/the-guild/graph-local-state/packages/sql-schema/src/schema.graphql',
@@ -105,19 +135,11 @@ const main = async () => {
             return null
           })
 
-        const namedType = type.type.kind === Kind.NAMED_TYPE ? getDataType(type.type.name.value) : null
-        const isMapped = namedType && isMappedSQLType(namedType)
+        const namedNode = extractNameNode(type)
 
-        const relationTable =
-          type.type.kind === Kind.NON_NULL_TYPE
-            ? type.type.type.kind === Kind.NAMED_TYPE
-              ? type.type.type.name.value
-              : null
-            : isMapped
-            ? null
-            : namedType?.endsWith('s')
-            ? namedType
-            : `${namedType}s`
+        const namedType = namedNode?.name ? getDataType(namedNode.name.value) : null
+        const isMapped = namedType && isMappedSQLType(namedType)
+        const relationTable = !isMapped ? `${namedType}s` : null
 
         return {
           name: name.value,
