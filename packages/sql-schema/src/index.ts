@@ -32,6 +32,7 @@ const typeDefs = /* GraphQL */ `
   directive @derivedFrom(field: String!) on FIELD_DEFINITION
 
   type Post {
+    id: ID!
     title: String!
     body: String!
     user: User!
@@ -122,33 +123,36 @@ const main = async () => {
     ObjectTypeDefinition(node) {
       const tableName = node.name.value.endsWith('s') ? node.name.value : `${node.name.value}s`
 
-      const columns = node.fields?.map(({ name, type, directives }) => {
-        const relation =
-          directives &&
-          directives.map((directive) => {
-            if (directive.name.kind === Kind.NAME) {
-              const arg = directive?.arguments?.find(({ name }) => name.value === 'field')
-              if (arg?.value.kind === Kind.STRING) {
-                return arg?.value.value
+      const columns = node.fields
+        // `id` field is added by default
+        ?.filter(({ name }) => name.value.toLowerCase() !== 'id')
+        .map(({ name, type, directives }) => {
+          const relation =
+            directives &&
+            directives.map((directive) => {
+              if (directive.name.kind === Kind.NAME) {
+                const arg = directive?.arguments?.find(({ name }) => name.value === 'field')
+                if (arg?.value.kind === Kind.STRING) {
+                  return arg?.value.value
+                }
               }
-            }
-            return null
-          })
+              return null
+            })
 
-        const namedNode = extractNameNode(type)
+          const namedNode = extractNameNode(type)
 
-        const namedType = namedNode?.name ? getDataType(namedNode.name.value) : null
-        const isMapped = namedType && isMappedSQLType(namedType)
-        const relationTable = !isMapped ? `${namedType}s` : null
+          const namedType = namedNode?.name ? getDataType(namedNode.name.value) : null
+          const isMapped = namedType && isMappedSQLType(namedType)
+          const relationTable = !isMapped ? `${namedType}s` : null
 
-        return {
-          name: name.value,
-          type: isMapped ? namedType : 'INTEGER', // relations are always text
-          constraint: type.kind === Kind.NON_NULL_TYPE ? 'NOT NULL' : 'NULL',
-          relationTable,
-          relation: relation && relation.length > 0 ? relation[0] : null,
-        }
-      })
+          return {
+            name: name.value,
+            type: isMapped ? namedType : 'INTEGER', // relations are always text
+            constraint: type.kind === Kind.NON_NULL_TYPE ? 'NOT NULL' : 'NULL',
+            relationTable,
+            relation: relation && relation.length > 0 ? relation[0] : null,
+          }
+        })
 
       sqlSchema.push({ tableName, columns })
     },
