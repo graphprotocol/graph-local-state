@@ -1,6 +1,6 @@
 import { loadSchema } from '@graphql-tools/load'
 import { GraphQLFileLoader } from '@graphql-tools/graphql-file-loader'
-import { Kind, parse, TypeNode, visit } from 'graphql'
+import { Kind, NamedTypeNode, parse, TypeNode, visit } from 'graphql'
 import { camelCase } from 'lodash'
 
 // const typeDefs = /* GraphQL */ `
@@ -11,13 +11,13 @@ import { camelCase } from 'lodash'
 //     code: String!
 //     population: Int!
 //     works: Boolean!
-//     states: [State!] @derivedFrom(field: "countries")
+//     states: [State!]! @derivedFrom(field: "countries")
 //   }
 
 //   type State {
 //     name: String!
 //     code: String!
-//     countries: [Country!]
+//     countries: Country!
 //     cities: [City!] @derivedFrom(field: "state")
 //   }
 
@@ -28,21 +28,35 @@ import { camelCase } from 'lodash'
 //   }
 // `
 
-const typeDefs = /* GraphQL */ `
-  directive @derivedFrom(field: String!) on FIELD_DEFINITION
+// const typeDefs = /* GraphQL */ `
+//   directive @derivedFrom(field: String!) on FIELD_DEFINITION
 
-  type Post {
-    id: ID!
-    title: String!
-    body: String!
-    user: User!
-  }
+//   type Post {
+//     id: ID!
+//     title: String!
+//     body: String!
+//     user: User!
+//   }
 
-  type User {
-    name: String!
-    username: String
-  }
-`
+//   type User {
+//     name: String!
+//     username: String
+//   }
+// `
+
+// const typeDefs = /* GraphQL */ `
+//   type Organization @entity {
+//     id: ID!
+//     name: String!
+//     members: [User!]!
+//   }
+
+//   type User @entity {
+//     id: ID!
+//     name: String!
+//     organizations: [Organization!]! @derivedFrom(field: "members")
+//   }
+// `
 
 const log = console.log
 
@@ -140,8 +154,20 @@ const main = async () => {
             })
 
           const namedNode = extractNameNode(type)
+          // Extract from a NonNull List - this is for many-to-many relations
+          const listType =
+            !!!namedNode && type.kind === Kind.NON_NULL_TYPE
+              ? type.type.kind === Kind.LIST_TYPE
+                ? type.type.type
+                : null
+              : null
+          const listNode = listType && extractNameNode(listType.type)
 
-          const namedType = namedNode?.name ? getDataType(namedNode.name.value) : null
+          const namedType = namedNode?.name
+            ? getDataType(namedNode.name.value)
+            : listNode
+            ? getDataType(listNode.name.value)
+            : null
           const isMapped = namedType && isMappedSQLType(namedType)
           const relationTable = !isMapped ? `${namedType}s` : null
 
