@@ -5,7 +5,7 @@ importers:
   .:
     specifiers:
       '@changesets/cli': 2.21.0
-      '@types/node': ^17.0.21
+      '@types/node': ^18.0.0
       bob-the-bundler: ^1.6.1
       husky: ^7.0.4
       patch-package: ^6.4.7
@@ -15,7 +15,7 @@ importers:
       typescript: ^4.6.2
     devDependencies:
       '@changesets/cli': 2.21.0
-      '@types/node': 17.0.21
+      '@types/node': 18.11.15
       bob-the-bundler: 1.6.1_typescript@4.6.2
       husky: 7.0.4
       patch-package: 6.4.7
@@ -329,8 +329,8 @@ packages:
     resolution: {integrity: sha512-cPjLXj8d6anFPzFvOPxS3fvly3Shm5nTfl6g8X5smexixbuGUf7hfr21J5tX9JW+UPStp/5P5R8qrKL5IyVJ+A==}
     dev: true
 
-  /@types/node/17.0.21:
-    resolution: {integrity: sha512-DBZCJbhII3r90XbQxI8Y9IjjiiOGlZ0Hr32omXIZvwwZ7p4DMMXGrKXVyPfuoBOri9XNtL0UK69jYIBIsRX3QQ==}
+  /@types/node/18.11.15:
+    resolution: {integrity: sha512-VkhBbVo2+2oozlkdHXLrb3zjsRkpdnaU2bXmX8Wgle3PUi569eLRaHGlgETQHR7lLL1w7GiG3h9SnePhxNDecw==}
     dev: true
 
   /@types/normalize-package-data/2.4.1:
@@ -344,7 +344,7 @@ packages:
   /@types/resolve/0.0.8:
     resolution: {integrity: sha512-auApPaJf3NPfe18hSoJkp8EbZzer2ISk7o8mCC3M9he/a04+gbMF97NkpD2S8riMGvm4BMRI59/SZQSaLTKpsQ==}
     dependencies:
-      '@types/node': 17.0.21
+      '@types/node': 18.11.15
     dev: true
 
   /@types/semver/6.2.3:
