@@ -1,4 +1,4 @@
-lockfileVersion: 5.3
+lockfileVersion: 5.4
 
 importers:
 
@@ -464,7 +464,7 @@ packages:
       param-case: 3.0.4
       rollup: 2.3.2
       rollup-plugin-generate-package-json: 3.2.0_rollup@2.3.2
-      rollup-plugin-typescript2: 0.27.0_rollup@2.3.2+typescript@4.6.2
+      rollup-plugin-typescript2: 0.27.0_33cs5vsda3hgbk5e6k2dakesvq
       tslib: 1.14.1
       tsup: 5.11.13_typescript@4.6.2
       yargs: 15.3.1
@@ -2047,7 +2047,7 @@ packages:
       write-pkg: 4.0.0
     dev: true
 
-  /rollup-plugin-typescript2/0.27.0_rollup@2.3.2+typescript@4.6.2:
+  /rollup-plugin-typescript2/0.27.0_33cs5vsda3hgbk5e6k2dakesvq:
     resolution: {integrity: sha512-SRKG/Canve3cxBsqhY1apIBznqnX9X/WU3Lrq3XSwmTmFqccj3+//logLXFEmp+PYFNllSVng+f4zjqRTPKNkA==}
     peerDependencies:
       rollup: '>=1.26.3'
